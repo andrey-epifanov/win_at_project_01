@@ -645,6 +645,68 @@ public class WinWindow {
         return menu != null && menu != Pointer.NULL;
     }
 
+    // ===== hierarchy dump / text search ======================================
+
+    /**
+     * Return a human-readable, indented dump of this window and ALL descendant
+     * controls: each line has the element type (Win32 class name) and its
+     * window text/caption.  Used to log the full control tree of a window.
+     */
+    public String dumpHierarchy() {
+        StringBuilder sb = new StringBuilder();
+        appendHierarchy(sb, this, 0);
+        return sb.toString();
+    }
+
+    private static void appendHierarchy(StringBuilder sb, WinWindow w, int depth) {
+        String indent = "    ".repeat(depth);
+        sb.append(indent)
+          .append("- ").append(w.className())
+          .append(" : ").append(escape(w.text()))
+          .append(" [visible=").append(w.isVisible()).append("]")
+          .append(System.lineSeparator());
+        for (WinWindow child : w.children()) {
+            appendHierarchy(sb, child, depth + 1);
+        }
+    }
+
+    /**
+     * Depth-first search across this window and all descendants, returning the
+     * controls whose window text EQUALS the given text (case-insensitive).
+     */
+    public List<WinWindow> findAllByText(String text) {
+        List<WinWindow> out = new ArrayList<>();
+        collectByText(this, text, out, false);
+        return out;
+    }
+
+    /** Case-insensitive substring variant of {@link #findAllByText(String)}. */
+    public List<WinWindow> findAllByTextContains(String text) {
+        List<WinWindow> out = new ArrayList<>();
+        collectByText(this, text, out, true);
+        return out;
+    }
+
+    /** First control (this window or a descendant) whose text equals {@code text}. */
+    public WinWindow findByText(String text) {
+        List<WinWindow> all = findAllByText(text);
+        return all.isEmpty() ? null : all.get(0);
+    }
+
+    private static void collectByText(WinWindow w, String text, List<WinWindow> out, boolean contains) {
+        String t = w.text();
+        if (contains ? t.toLowerCase().contains(text.toLowerCase()) : t.equalsIgnoreCase(text)) {
+            out.add(w);
+        }
+        for (WinWindow child : w.children()) {
+            collectByText(child, text, out, contains);
+        }
+    }
+
+    private static String escape(String s) {
+        return s.replace("\r", "\\r").replace("\n", "\\n");
+    }
+
     @Override
     public String toString() {
         return "WinWindow[" + handle + ", class=" + className() + ", text=" + text()
