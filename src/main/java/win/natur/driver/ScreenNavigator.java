@@ -219,7 +219,7 @@ public final class ScreenNavigator {
      * Signed gap from {@code anchor} to {@code b} along {@code direction}.
      * Negative means the candidate is not in that direction (skip it).
      */
-    static int distance(Rectangle anchor, Rectangle b, Direction dir) {
+    public static int distance(Rectangle anchor, Rectangle b, Direction dir) {
         switch (dir) {
             case LEFT:
                 if (b.x + b.width <= anchor.x) {
