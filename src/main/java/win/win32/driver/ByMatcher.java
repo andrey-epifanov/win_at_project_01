@@ -1,4 +1,4 @@
-package win.driver;
+package win.win32.driver;
 
 /** Internal helper to test a By selector against a WinWindow. */
 final class ByMatcher {

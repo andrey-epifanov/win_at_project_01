@@ -1,9 +1,9 @@
 package com.example.reporttest;
 
-import win.driver.By;
-import win.driver.WinDriver;
-import win.driver.WinProcess;
-import win.driver.WinWindow;
+import win.win32.driver.By;
+import win.win32.driver.WinDriver;
+import win.win32.driver.WinProcess;
+import win.win32.driver.WinWindow;
 
 import lombok.extern.slf4j.Slf4j;
 

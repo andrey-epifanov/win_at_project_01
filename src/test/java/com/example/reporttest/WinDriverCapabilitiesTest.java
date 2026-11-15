@@ -1,14 +1,12 @@
 package com.example.reporttest;
 
 import org.junit.jupiter.api.Test;
-import win.driver.By;
-import win.driver.WinDriver;
-import win.driver.WinProcess;
-import win.driver.WinWindow;
-import win.driver.WinKey;
+import win.win32.driver.By;
+import win.win32.driver.WinDriver;
+import win.win32.driver.WinProcess;
+import win.win32.driver.WinWindow;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;

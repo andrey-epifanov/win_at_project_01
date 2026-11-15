@@ -1,4 +1,4 @@
-package win.driver;
+package win.win32.driver;
 
 /** Runtime exception thrown by the win.driver toolkit. */
 public class WinException extends RuntimeException {

@@ -1,4 +1,4 @@
-package win.driver;
+package win.win32.driver;
 
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;

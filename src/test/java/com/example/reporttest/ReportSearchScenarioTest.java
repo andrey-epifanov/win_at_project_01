@@ -1,9 +1,9 @@
 package com.example.reporttest;
 
-import com.example.reporttest.driver.NativeWindow;
-import com.example.reporttest.driver.ReportSearchDriver;
-import com.example.reporttest.driver.Screenshot;
-import com.example.reporttest.driver.WindowFinder;
+import win.natur.driver.NativeWindow;
+import win.natur.driver.ReportSearchDriver;
+import win.natur.driver.Screenshot;
+import win.natur.driver.WindowFinder;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *   app.search.needle = a unique content substring of the kassa report.
  *
  * All addressing goes through the native Win32 driver (JNA in the
- * com.example.reporttest.driver package): window, child controls, typing,
+ * win.natur.driver package): window, child controls, typing,
  * clicking, menu command, checkbox clicking, screenshots.
  */
 @SpringBootTest

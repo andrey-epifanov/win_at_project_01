@@ -3,10 +3,9 @@ package com.example.reporttest.tax;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import win.driver.By;
-import win.driver.WinDriver;
-import win.driver.WinProcess;
-import win.driver.WinWindow;
+import win.win32.driver.WinDriver;
+import win.win32.driver.WinProcess;
+import win.win32.driver.WinWindow;
 
 import java.io.IOException;
 import java.util.List;

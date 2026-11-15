@@ -12,7 +12,7 @@ used to automate any Win32 window.
 
 ## Dependencies
 
-- JNA + jna-platform (already in `pom.xml`)
+- JNA + jna-platform (already in `../../../../../../pom.xml`)
 - Java 17+
 
 ## Examples

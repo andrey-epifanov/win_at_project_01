@@ -1,8 +1,8 @@
 package com.example.reporttest;
 
-import com.example.reporttest.driver.NativeWindow;
-import com.example.reporttest.driver.ReportSearchDriver;
-import com.example.reporttest.driver.WindowFinder;
+import win.natur.driver.NativeWindow;
+import win.natur.driver.ReportSearchDriver;
+import win.natur.driver.WindowFinder;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

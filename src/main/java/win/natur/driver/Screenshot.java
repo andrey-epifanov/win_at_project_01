@@ -1,7 +1,6 @@
-package com.example.reporttest.driver;
+package win.natur.driver;
 
 import com.sun.jna.Memory;
-import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.WinDef.RECT;
 

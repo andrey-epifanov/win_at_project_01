@@ -1,4 +1,4 @@
-package win.driver;
+package win.win32.driver;
 
 /**
  * Selector describing HOW to address a window or a child control, in the

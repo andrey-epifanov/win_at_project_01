@@ -1,4 +1,4 @@
-package win.driver;
+package win.win32.driver;
 
 /**
  * Synthetic keyboard support for the win.driver toolkit.

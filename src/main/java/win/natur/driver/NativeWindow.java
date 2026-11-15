@@ -1,4 +1,4 @@
-package com.example.reporttest.driver;
+package win.natur.driver;
 
 import com.sun.jna.Pointer;
 import com.sun.jna.WString;
