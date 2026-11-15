@@ -3,6 +3,8 @@ package com.example.reporttest.samples;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import win.natur.driver.ScreenNavigator;
+import win.natur.driver.TemplateMatcher;
 
 import java.awt.Color;
 import java.awt.Font;

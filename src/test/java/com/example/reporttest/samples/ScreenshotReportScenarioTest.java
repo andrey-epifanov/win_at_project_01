@@ -3,6 +3,7 @@ package com.example.reporttest.samples;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import win.natur.driver.OcrDriver;
 import win.win32.driver.WinDriver;
 import win.win32.driver.WinException;
 import win.win32.driver.WinProcess;
