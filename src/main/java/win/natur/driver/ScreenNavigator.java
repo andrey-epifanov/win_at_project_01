@@ -163,7 +163,7 @@ public final class ScreenNavigator {
      * fall back to the nearest box centre; {@code -1} if {@code boxes} is empty.
      * This is the pure decision rule behind {@code STRAIGHT}/{@code EQUAL}.
      */
-    static int selectAtPoint(List<Rectangle> boxes, int cx, int cy) {
+    public static int selectAtPoint(List<Rectangle> boxes, int cx, int cy) {
         int bestIdx = -1;
         double bestD = Double.MAX_VALUE;
         for (int i = 0; i < boxes.size(); i++) {
