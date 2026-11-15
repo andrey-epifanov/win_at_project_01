@@ -133,4 +133,15 @@ public interface Win32 extends StdCallLibrary {
     short VkKeyScanW(char ch);
     /** Low-level synthetic keyboard input (flags: 0 down, 2 up). */
     void keybd_event(byte bVk, byte bScan, int dwFlags, Pointer dwExtraInfo);
+
+    // ----- synthetic mouse input ------------------------------------------
+    // MOUSEEVENTF_* flags for mouse_event()
+    int MOUSEEVENTF_MOVE     = 0x0001;
+    int MOUSEEVENTF_LEFTDOWN = 0x0002;
+    int MOUSEEVENTF_LEFTUP   = 0x0004;
+
+    /** Move the cursor to the given SCREEN coordinates. */
+    boolean SetCursorPos(int X, int Y);
+    /** Inject a mouse event (flags: MOUSEEVENTF_LEFTDOWN/LEFTUP). */
+    void mouse_event(int dwFlags, int dx, int dy, int dwData, Pointer dwExtraInfo);
 }

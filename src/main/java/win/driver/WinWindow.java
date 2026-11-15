@@ -351,6 +351,24 @@ public class WinWindow {
         }
     }
 
+    /**
+     * Click at the given SCREEN coordinates with a real mouse event.  The
+     * window is brought to the foreground first (synthetic mouse events need
+     * the foreground queue).  Used for screenshot-driven navigation: the caller
+     * maps the screenshot pixel to a screen coordinate by adding the window
+     * rect origin.
+     */
+    public void clickAt(int screenX, int screenY) {
+        goToThisWindow();
+        WinDriver.sleep(80);
+        Win32.INSTANCE.SetCursorPos(screenX, screenY);
+        WinDriver.sleep(40);
+        Win32.INSTANCE.mouse_event(Win32.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, null);
+        WinDriver.sleep(40);
+        Win32.INSTANCE.mouse_event(Win32.MOUSEEVENTF_LEFTUP, 0, 0, 0, null);
+        WinDriver.sleep(60);
+    }
+
     // ----- internals -----------------------------------------------------
 
     protected Pointer topLevelOwner() {
@@ -643,6 +661,33 @@ public class WinWindow {
     public boolean hasMenu() {
         Pointer menu = Win32.INSTANCE.GetMenu(handle);
         return menu != null && menu != Pointer.NULL;
+    }
+
+    /**
+     * Find a top-level menu item by caption (exact, case-insensitive) and send
+     * WM_COMMAND to the window with its command ID.  This reliably triggers the
+     * item's OnClick even from a background JVM (unlike synthetic mouse clicks
+     * which need an established foreground).  Returns false if not found.
+     */
+    public boolean clickMenuByText(String caption) {
+        Pointer menu = Win32.INSTANCE.GetMenu(handle);
+        if (menu == null || menu == Pointer.NULL) {
+            return false;
+        }
+        int count = Win32.INSTANCE.GetMenuItemCount(menu);
+        for (int i = 0; i < count; i++) {
+            char[] buf = new char[256];
+            int n = Win32.INSTANCE.GetMenuStringW(menu, i, buf, buf.length, Win32.MF_BYPOSITION);
+            String text = n > 0 ? new String(buf, 0, n) : "";
+            if (text.equalsIgnoreCase(caption)) {
+                int id = Win32.INSTANCE.GetMenuItemID(menu, i);
+                if (id >= 0) {
+                    Win32.INSTANCE.PostMessageW(handle, Win32.WM_COMMAND, id, 0);
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     // ===== hierarchy dump / text search ======================================
