@@ -38,6 +38,32 @@ public final class WinKey {
         event((byte) vk, true);
     }
 
+    /**
+     * Type a string by synthesising key presses (keybd_event).  Reaches the
+     * FOREGROUND window — call {@code WinWindow.goToThisWindow()} first.
+     * Supports letters/digits/punctuation; uses VkKeyScanW to get the vk + shift
+     * state so uppercase and shifted symbols work.
+     */
+    public static void type(String value) {
+        for (int i = 0; i < value.length(); i++) {
+            char ch = value.charAt(i);
+            short scan = Win32.INSTANCE.VkKeyScanW(ch);
+            if (scan == -1) {
+                continue;
+            }
+            int vk = scan & 0xFF;
+            boolean shift = (scan & 0x100) != 0;
+            if (shift) {
+                event((byte) VK_SHIFT, false);
+            }
+            event((byte) vk, false);
+            event((byte) vk, true);
+            if (shift) {
+                event((byte) VK_SHIFT, true);
+            }
+        }
+    }
+
     /** Press and release a virtual key while holding Control. */
     public static void ctrl(int vk) {
         chord(VK_CONTROL, vk);

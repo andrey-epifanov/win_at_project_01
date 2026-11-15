@@ -86,6 +86,18 @@ public final class OcrDriver {
      */
     public List<OcrWord> readWords(File png) {
         BufferedImage src = load(png);
+        return ocrWords(src);
+    }
+
+    /** OCR an in-memory image and return words in ITS pixel coordinates. */
+    public List<OcrWord> readWordsOfImage(BufferedImage src) {
+        if (src == null) {
+            return new ArrayList<>();
+        }
+        return ocrWords(src);
+    }
+
+    private List<OcrWord> ocrWords(BufferedImage src) {
         BufferedImage big = preprocess(src);
         Path tmpPng = null;
         try {
@@ -104,7 +116,7 @@ public final class OcrDriver {
             double sy = (double) src.getHeight() / big.getHeight();
             return parseTsv(List.of(Files.readString(tsv.toPath()).split("\r?\n")), sx, sy);
         } catch (IOException | TesseractException e) {
-            throw new IllegalStateException("OCR failed on " + png, e);
+            throw new IllegalStateException("OCR failed", e);
         } finally {
             if (tmpPng != null) {
                 try {

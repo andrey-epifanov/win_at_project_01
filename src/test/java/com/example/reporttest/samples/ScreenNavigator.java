@@ -8,38 +8,48 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.imageio.ImageIO;
 
 /**
- * Screenshot-driven navigation above the generic {@code win.driver} toolkit.
+ * Screenshot-driven navigation above the generic {@code win.win32.driver} toolkit.
  *
- * <p>It answers three questions in screenshot terms:
+ * <p>It answers the following questions in screenshot terms:
  * <ol>
  *   <li><b>findText</b> — where on screen (OCR) does some text appear?</li>
  *   <li><b>findByTypeNear</b> — from that text, which nearby real HWND control
  *       of a given type (Edit / Button / ComboBox / ...) is in a chosen
- *       direction (LEFT / RIGHT / ABOVE / BELOW)?</li>
+ *       direction?  Directions: {@link Direction#LEFT}/{@link Direction#RIGHT}/
+ *       {@link Direction#ABOVE}/{@link Direction#BELOW} (search a real control on
+ *       that side) and {@link Direction#STRAIGHT}/{@link Direction#EQUAL} (return
+ *       the control located exactly at the text point).</li>
  *   <li><b>findByImage</b> — where does a reference image (a text-less button /
  *       icon) appear in the screenshot?</li>
  * </ol>
  *
+ * <p>Every locating method returns a {@link WindElement} — the found element
+ * with its bounds and the standard set of actions (click / double-click / type /
+ * text / screenshot / bounds).
+ *
  * <p>Coordinate model: a screenshot PNG is 1:1 with the window's client pixels.
  * {@code WinWindow.rect()} gives the window's top-left on the physical screen,
  * so a screenshot point {@code (x,y)} maps to screen {@code (rect.left+x,
- * rect.top+y)}.
- *
- * <p>The text anchors are found by OCR ({@link OcrDriver}); the neighbouring
- * controlled-type elements are real Win32 HWNDs, enumerated with
- * {@link WinWindow#children()} and matched by class name + geometry relative to
- * the anchor.
+ * rect.top+y)}.  {@link WindElement#position()} and all click actions use that
+ * mapping.
  */
 @Slf4j
 public final class ScreenNavigator {
 
     /** Directions to look from an anchor text / point. */
-    public enum Direction { LEFT, RIGHT, ABOVE, BELOW }
+    public enum Direction {
+        LEFT, RIGHT, ABOVE, BELOW,
+        /** The element located exactly AT the anchor text point. */
+        STRAIGHT,
+        /** Same semantics as STRAIGHT (element at the point of the text). */
+        EQUAL
+    }
 
     private final OcrDriver ocr;
 
@@ -51,17 +61,16 @@ public final class ScreenNavigator {
 
     /**
      * OCR the window screenshot and return the first word exactly equal to
-     * {@code text}, mapped to SCREEN coordinates (absolute desktop pixels).
+     * {@code text}, routed to a {@link WindElement} at the found point.
      */
-    public Point findText(WinWindow window, String text) throws IOException {
+    public WindElement findText(WinWindow window, String text) throws IOException {
         File shot = window.screenshot(Path.of("screenshots"), "nav_find.png");
         List<OcrDriver.OcrWord> words = ocr.findByText(shot, text);
         if (words.isEmpty()) {
             throw new IllegalStateException("OCR did not find text '" + text + "' on " + window);
         }
         OcrDriver.OcrWord w = words.get(0);
-        int[] r = window.rect();
-        return new Point(r[0] + w.centerX(), r[1] + w.centerY(), w.box, text);
+        return new WindElement(window, w.box, ocr);
     }
 
     /** All matches for text, as screenshot-coordinate boxes. */
@@ -73,32 +82,55 @@ public final class ScreenNavigator {
     // ===== 2. find control of a type near text ============================
 
     /**
-     * Find the real HWND control of the given Win32 class in {@code direction}
-     * relative to the OCR-anchored text.  Returns the nearest such control, or
-     * null.  The returned geometry is in WINDOW-CLIENT coordinates (screenshot
-     * space), matching the anchor box.
+     * Find the real HWND control of the given Win32 class relative to the
+     * OCR-anchored text.  For {@code LEFT/RIGHT/ABOVE/BELOW} it returns the
+     * nearest such control on that side; for {@code STRAIGHT/EQUAL} it returns
+     * the control whose bounding box contains the anchor text point.
+     * Returns a {@link WindElement}, or null.
      */
-    public WinWindow findByTypeNear(WinWindow window, String text,
-                                    String winClass, Direction direction) throws IOException {
+    public WindElement findByTypeNear(WinWindow window, String text,
+                                      String winClass, Direction direction) throws IOException {
         File shot = window.screenshot(Path.of("screenshots"), "nav_type_near.png");
         OcrDriver.OcrWord anchor = first(ocr.findByText(shot, text));
         if (anchor == null) {
             throw new IllegalStateException("OCR anchor text '" + text + "' not found on " + window);
         }
-        return findControlNear(window, anchor.box, winClass, direction);
+        WinWindow ctrl = findControlNear(window, anchor.box, winClass, direction);
+        return ctrl == null ? null : new WindElement(window, clientBox(ctrl, window.rect()), ocr);
     }
 
     /**
-     * Pick the real control of class {@code winClass} whose bounding box is the
-     * best fit in {@code direction} from {@code anchor} (in window-client px).
-     * "Best" = nearest edge in that direction; ties broken by smaller gap.
+     * Return a {@link WindElement} directly from an anchor box (in window-client
+     * pixels).  Useful to wrap an already-known region.
+     */
+    public WindElement element(WinWindow window, Rectangle box) {
+        return new WindElement(window, box, ocr);
+    }
+
+    /**
+     * Pick the real control of class {@code winClass} from {@code anchor}
+     * (window-client px).  For LEFT/RIGHT/ABOVE/BELOW choose the nearest by edge
+     * gap; for STRAIGHT/EQUAL choose the control containing the anchor point.
      */
     public WinWindow findControlNear(WinWindow window, Rectangle anchor,
                                      String winClass, Direction direction) {
-        int[] top = window.rect(); // top-left of the top-level window on screen
-        Rectangle best = null;
+        int[] top = window.rect();
         WinWindow bestWin = null;
         int bestDistance = Integer.MAX_VALUE;
+
+        // STRAIGHT/EQUAL: return the element whose box contains the anchor point.
+        if (direction == Direction.STRAIGHT || direction == Direction.EQUAL) {
+            int cx = anchor.x + anchor.width / 2;
+            int cy = anchor.y + anchor.height / 2;
+            List<WinWindow> cands = childrenOfClass(window, winClass);
+            List<Rectangle> boxes = new ArrayList<>();
+            for (WinWindow c : cands) {
+                boxes.add(clientBox(c, top));
+            }
+            int idx = selectAtPoint(boxes, cx, cy);
+            return idx < 0 ? null : cands.get(idx);
+        }
+
         for (WinWindow child : window.children()) {
             if (!child.className().equalsIgnoreCase(winClass)) {
                 continue;
@@ -110,11 +142,44 @@ public final class ScreenNavigator {
             }
             if (dist < bestDistance) {
                 bestDistance = dist;
-                best = b;
                 bestWin = child;
             }
         }
         return bestWin;
+    }
+
+    private static List<WinWindow> childrenOfClass(WinWindow window, String winClass) {
+        List<WinWindow> out = new ArrayList<>();
+        for (WinWindow child : window.children()) {
+            if (child.className().equalsIgnoreCase(winClass)) {
+                out.add(child);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Pick the box that contains the point {@code (cx,cy)}; if none contains it,
+     * fall back to the nearest box centre; {@code -1} if {@code boxes} is empty.
+     * This is the pure decision rule behind {@code STRAIGHT}/{@code EQUAL}.
+     */
+    static int selectAtPoint(List<Rectangle> boxes, int cx, int cy) {
+        int bestIdx = -1;
+        double bestD = Double.MAX_VALUE;
+        for (int i = 0; i < boxes.size(); i++) {
+            Rectangle b = boxes.get(i);
+            if (b.contains(cx, cy)) {
+                return i;
+            }
+            double dx = b.getCenterX() - cx;
+            double dy = b.getCenterY() - cy;
+            double d = Math.sqrt(dx * dx + dy * dy);
+            if (d < bestD) {
+                bestD = d;
+                bestIdx = i;
+            }
+        }
+        return bestIdx;
     }
 
     // ===== 3. find by image ===============================================
@@ -123,10 +188,10 @@ public final class ScreenNavigator {
      * Find a reference image (a text-less control) in the screenshot.  The
      * template is loaded from a path; you can pass a search {@code region}
      * (relative to the window) to scope the scan, and a {@code minScore}
-     * (default 0.7).  Returns the best match in SCREEN coordinates, or null.
+     * (default 0.7).  Returns a {@link WindElement} at the best match, or null.
      */
-    public Match findByImage(WinWindow window, Path templatePath,
-                             Rectangle region, float minScore) throws IOException {
+    public WindElement findByImage(WinWindow window, Path templatePath,
+                                   Rectangle region, float minScore) throws IOException {
         TemplateMatcher matcher = TemplateMatcher.load(templatePath);
         File shot = window.screenshot(Path.of("screenshots"), "nav_image.png");
         BufferedImage img = ImageIO.read(shot);
@@ -135,8 +200,7 @@ public final class ScreenNavigator {
             return null;
         }
         TemplateMatcher.Match m = found.get(0);
-        int[] r = window.rect();
-        return new Match(r[0] + m.centerX(), r[1] + m.centerY(), m);
+        return new WindElement(window, new Rectangle(m.x, m.y, m.width, m.height), ocr);
     }
 
     // ===== internals ======================================================
@@ -147,7 +211,6 @@ public final class ScreenNavigator {
 
     private static Rectangle clientBox(WinWindow child, int[] topOrigin) {
         int[] r = child.rect(); // screen coords
-        // convert to window-client by subtracting the top-level window origin
         return new Rectangle(r[0] - topOrigin[0], r[1] - topOrigin[1],
                 r[2] - r[0], r[3] - r[1]);
     }
@@ -178,49 +241,8 @@ public final class ScreenNavigator {
                     return b.y - (anchor.y + anchor.height);
                 }
                 return -1;
-        }
-        return -1;
-    }
-
-    // ===== value types ====================================================
-
-    /** A screen-coordinate point plus the screenshot box (window-client) it came from. */
-    public static final class Point {
-        public final int screenX;
-        public final int screenY;
-        public final Rectangle box;
-        public final String text;
-
-        Point(int screenX, int screenY, Rectangle box, String text) {
-            this.screenX = screenX;
-            this.screenY = screenY;
-            this.box = box;
-            this.text = text;
-        }
-
-        @Override
-        public String toString() {
-            return "Point['" + text + "' @" + screenX + "," + screenY + " box=" + box + "]";
-        }
-    }
-
-    /** A screen-coordinate match (from image template). */
-    public static final class Match {
-        public final int screenX;
-        public final int screenY;
-        public final Rectangle box;
-        public final float score;
-
-        Match(int screenX, int screenY, TemplateMatcher.Match m) {
-            this.screenX = screenX;
-            this.screenY = screenY;
-            this.box = m.toRect();
-            this.score = m.score;
-        }
-
-        @Override
-        public String toString() {
-            return "Match@" + screenX + "," + screenY + " box=" + box + " score=" + score;
+            default:
+                return -1;
         }
     }
 }

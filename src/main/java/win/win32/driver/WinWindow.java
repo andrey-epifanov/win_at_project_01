@@ -369,6 +369,25 @@ public class WinWindow {
         WinDriver.sleep(60);
     }
 
+    /**
+     * Double-click at the given SCREEN coordinates with a real mouse event.
+     * Sent as two quick click-pairs (left down/up x2).  Used for list rows /
+     * cells that open on double-click.
+     */
+    public void doubleClickAt(int screenX, int screenY) {
+        goToThisWindow();
+        WinDriver.sleep(80);
+        Win32.INSTANCE.SetCursorPos(screenX, screenY);
+        WinDriver.sleep(40);
+        for (int i = 0; i < 2; i++) {
+            Win32.INSTANCE.mouse_event(Win32.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, null);
+            WinDriver.sleep(25);
+            Win32.INSTANCE.mouse_event(Win32.MOUSEEVENTF_LEFTUP, 0, 0, 0, null);
+            WinDriver.sleep(45);
+        }
+        WinDriver.sleep(60);
+    }
+
     // ----- internals -----------------------------------------------------
 
     protected Pointer topLevelOwner() {
